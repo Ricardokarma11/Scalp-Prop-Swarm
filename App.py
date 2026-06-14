@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd  # <--- Isto estava a faltar no teu código
 import requests
 import random
 
@@ -19,6 +20,7 @@ def get_live_price(ticker):
 
 # Motor de Níveis (Smart Analysis)
 def get_smart_levels(p, direction):
+    # Regra institucional: Volatilidade padrão de 2% para SL
     volatility = 0.02 
     if direction == "LONG":
         sl = p * (1 - volatility)
@@ -40,9 +42,9 @@ with tab1:
     p = get_live_price(token)
     st.metric("CURRENT MARKET PRICE", f"${p:,.4f}")
     
-    sl, tp = get_smart_levels(p, direction)
-    
     if st.button("CALCULATE SETUP"):
+        sl, tp = get_smart_levels(p, direction)
+        # O uso de pd.DataFrame agora vai funcionar corretamente
         st.table(pd.DataFrame({
             "Metric": ["Stop Loss", "Take Profit", "Probability"],
             "Value": [f"${sl:,.4f}", f"${tp:,.4f}", f"{random.randint(85, 98)}%"]
@@ -72,4 +74,4 @@ with tab2:
     with c2:
         st.error("🔴 Top 10 Shorts")
         for item in shorts:
-            st.write(f"**{item['token']}** ({item['prob']}): Price: ${item['price']:.4f} | SL: ${item['price']*1.02:.4f} | TP: ${item['price']*0.94:.4f}")
+            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | SL: ${item['price']*1.02:.4f} | TP: ${item['price']*0.94:.4f}")
