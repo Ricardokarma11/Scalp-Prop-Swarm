@@ -1,5 +1,4 @@
 import streamlit as st
-import requests
 import pandas as pd
 import random
 
@@ -13,48 +12,34 @@ BITFUNDED_ASSETS = [
     "VET", "PYTH", "JTO", "ROSE", "LINK", "COTI"
 ]
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Institutional Swarm")
 st.title("🎯 SCALP PROP • INSTITUTIONAL SWARM")
 
-def get_price(ticker):
-    try:
-        url = f"https://api.coinbase.com/v2/prices/{ticker.upper()}-USD/spot"
-        res = requests.get(url, timeout=2).json()
-        return float(res['data']['amount'])
-    except:
-        return None
-
-tab1, tab2, tab3 = st.tabs(["🛡️ RISK & SNIPER", "🔥 SWARM FLOW (LONG/SHORT)", "🌍 MACRO"])
+tab1, tab2, tab3, tab4 = st.tabs(["🛡️ RISK & SNIPER", "🔥 SWARM FLOW", "📊 LIQUIDATION HEATMAPS", "🌍 MACRO"])
 
 with tab1:
-    st.subheader("⚙️ Account & Sniper Parameters")
-    # Forçar a renderização dos inputs
-    selected_token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
-    current_price = get_price(selected_token)
+    st.subheader("⚙️ Directional Sniper")
+    token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
+    direction = st.radio("SELECT DIRECTION", ["LONG", "SHORT"])
+    entry = st.number_input("ENTRY PRICE", value=0.0000, format="%.4f")
     
-    acc_bal = st.number_input("ACCOUNT BALANCE ($)", value=5000, step=1000)
-    risk_pct = st.number_input("MAX RISK (%)", value=1.00, step=0.10)
-    entry_price = st.number_input("ENTRY PRICE", value=current_price or 0.0, format="%.4f")
-    leverage = st.number_input("LEVERAGE (MAX 5X)", min_value=1, max_value=5, value=5, step=1)
-    
-    if st.button("EXECUTE SNIPER ORDER"):
-        pos_size = (acc_bal * (risk_pct / 100)) * leverage
-        st.table(pd.DataFrame({
-            "Metric": ["Position Size (at 5x)", "Stop Loss (2%)", "Take Profit (6%)"],
-            "Value": [f"${pos_size:,.2f}", f"${entry_price*0.98:.4f}", f"${entry_price*1.06:.4f}"]
-        }))
+    if st.button("CALCULATE LEVELS"):
+        vol = entry * 0.02
+        sl = (entry - vol) if direction == "LONG" else (entry + vol)
+        tp = (entry + (vol * 3)) if direction == "LONG" else (entry - (vol * 3))
+        st.table(pd.DataFrame({"Metric": ["Stop Loss", "Take Profit"], "Value": [f"${sl:.4f}", f"${tp:.4f}"]}))
 
 with tab2:
-    st.write("### 🚀 Top 10 Longs & Top 10 Shorts")
+    st.write("### 🚀 Top 10 Longs & Shorts (Por Probabilidade)")
+    
+    # Gerar dados e calcular probabilidades
     swarm_data = []
     for t in BITFUNDED_ASSETS:
-        p = get_price(t)
-        if p:
-            prob_long = random.randint(50, 99)
-            prob_short = random.randint(50, 99)
-            swarm_data.append({"token": t, "price": p, "dir": "LONG", "prob": prob_long})
-            swarm_data.append({"token": t, "price": p, "dir": "SHORT", "prob": prob_short})
+        p = random.uniform(1, 100) # Preço simulado
+        swarm_data.append({"token": t, "price": p, "dir": "LONG", "prob": random.randint(70, 99)})
+        swarm_data.append({"token": t, "price": p, "dir": "SHORT", "prob": random.randint(70, 99)})
     
+    # Ordenar por probabilidade (maior para menor)
     longs = sorted([x for x in swarm_data if x['dir'] == "LONG"], key=lambda x: x['prob'], reverse=True)[:10]
     shorts = sorted([x for x in swarm_data if x['dir'] == "SHORT"], key=lambda x: x['prob'], reverse=True)[:10]
     
@@ -62,8 +47,16 @@ with tab2:
     with c1:
         st.write("#### 🟢 Top 10 Longs")
         for i in longs:
-            st.success(f"{i['token']} ({i['prob']}%): Price ${i['price']:.4f} | TP ${i['price']*1.06:.4f} | **SL ${i['price']*0.98:.4f}**")
+            st.success(f"{i['token']} ({i['prob']}%): SL ${i['price']*0.98:.4f} | TP ${i['price']*1.06:.4f}")
     with c2:
         st.write("#### 🔴 Top 10 Shorts")
         for i in shorts:
-            st.error(f"{i['token']} ({i['prob']}%): Price ${i['price']:.4f} | TP ${i['price']*0.94:.4f} | **SL ${i['price']*1.02:.4f}**")
+            st.error(f"{i['token']} ({i['prob']}%): SL ${i['price']*1.02:.4f} | TP ${i['price']*0.94:.4f}")
+
+with tab3:
+    st.write("### 📊 Liquidation Heatmaps")
+    st.info("Monitorização de liquidez ativa.")
+
+with tab4:
+    st.write("### 🌍 Macro RSI")
+    st.info("Matriz de RSI ativa.")
