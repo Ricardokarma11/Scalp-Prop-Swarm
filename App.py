@@ -2,67 +2,68 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# Configuração da página
-st.set_page_config(page_title="Scalp Prop v4.1 - Live Engine", layout="wide")
+# Scalp Prop - Optimized Version
+st.set_page_config(page_title="Scalp Prop - Terminal", layout="wide")
 
-st.title("🎯 SCALP PROP • V4.1 LIVE ENGINE")
-
-# --- ENGINE DE DADOS REAL ---
-def get_live_price(ticker):
-    """Verifica o valor real em tempo real na Binance API."""
-    try:
-        url = f"https://api.binance.com/api/v3/ticker/price?symbol={ticker.upper()}USDT"
-        response = requests.get(url, timeout=3)
-        if response.status_code == 200:
-            return float(response.json()['price'])
-        return None
-    except:
-        return None
-
-# --- UI: INPUT COMPACTO ---
-st.subheader("🔍 Live Market Scanner")
-col1, col2 = st.columns([3, 1])
-with col1:
-    token_input = st.text_input("Enter Token (e.g. LTC, BTC, SOL):", value="LTC").upper()
-with col2:
-    st.write("###") # Alinhamento
-    scan_btn = st.button("RUN SCAN")
-
-# --- LÓGICA DE CALCULO E BACKTEST ---
-if scan_btn:
-    price = get_live_price(token_input)
-    if price:
-        # Cálculos de Setup Baseados na Alavancagem 1:5
-        sl = price * 0.98 # 2% Stop Loss
-        tp1 = price * 1.02 # 2% TP
-        tp2 = price * 1.04 # 4% TP
-        
-        st.success(f"✅ Real-Time Data Synced for {token_input}: ${price:.4f}")
-        
-        # Display de métricas de trade
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Stop Loss", f"${sl:.4f}")
-        m2.metric("Target 1", f"${tp1:.4f}")
-        m3.metric("Target 2", f"${tp2:.4f}")
-        
-        # Logica de Escalonamento
-        st.info("🚀 **Scaling Protocol:** If price hits TP1, add 20% to margin and move SL to entry.")
-    else:
-        st.error("Error: Could not fetch price. Check ticker name.")
+st.title("🎯 SCALP PROP • PREMIUM")
+st.caption("Institutional Matrix | Live Swarm Sync | Max Leverage: 5X Cross")
 
 st.markdown("---")
 
-# --- TOP 10 SWARM SETUPS (Dinâmico) ---
-st.subheader("🔥 Top 10 Swarm Setups")
-top_tickers = ["BTC", "SOL", "SUI", "LINK", "NEAR", "FET", "ETH", "AVAX", "WIF", "LTC"]
+# Session State for Sync
+if "selected_token" not in st.session_state: st.session_state.selected_token = "BTC"
 
-for ticker in top_tickers:
-    with st.expander(f"🟢 {ticker} - Auto Scan"):
+# --- ENGINE: PREÇOS (Binance) ---
+@st.cache_data(ttl=30)
+def get_live_price(ticker):
+    try:
+        url = f"https://api.binance.com/api/v3/ticker/price?symbol={ticker.upper()}USDT"
+        res = requests.get(url, timeout=2).json()
+        return float(res['price'])
+    except:
+        return None
+
+# --- RESTAURAR MÉTRICAS EM LINHA ---
+# Valores de exemplo baseados na tua conta Bitfunded (10.000$)
+acc_bal = 10000
+cash_risk = acc_bal * 0.005 # 0.5% risco
+daily_loss = acc_bal * 0.05
+profit_target = acc_bal * 0.08
+
+m1, m2, m3 = st.columns(3)
+m1.metric("Risk / Trade", f"{cash_risk:.0f} USDT")
+m2.metric("Daily Loss", f"{daily_loss:.0f} USDT")
+m3.metric("Profit Target", f"{profit_target:.0f} USDT")
+st.markdown("---")
+
+# --- CUSTOM TOKEN CALC (Botão de disparo) ---
+st.subheader("🔍 Custom Operational Setup")
+col_input, col_btn = st.columns([3, 1])
+custom_tok = col_input.text_input("Enter Token:", value="LTC")
+if col_btn.button("CALCULATE"):
+    price = get_live_price(custom_tok)
+    if price:
+        st.success(f"Entry: ${price:.4f}")
+        col_res1, col_res2 = st.columns(2)
+        col_res1.write(f"**Stop Loss:** ${price*0.98:.4f}")
+        col_res2.write(f"**TP 1:** ${price*1.02:.4f} / **TP 2:** ${price*1.04:.4f}")
+        st.warning("Scaling: Add 20% margin at TP1 if volume persists.")
+    else:
+        st.error("Check Ticker Name (e.g., LTC)")
+
+st.markdown("---")
+
+# --- TOP 10 SWARM SETUPS (Com setup detalhado) ---
+st.subheader("🔥 Top 10 Pre-Approved Swarm Setups")
+top_tokens = ["BTC", "SOL", "SUI", "LINK", "NEAR", "FET", "ETH", "AVAX", "WIF", "LTC"]
+
+for ticker in top_tokens:
+    with st.expander(f"🟢 {ticker} (Auto-Setup)"):
         price = get_live_price(ticker)
         if price:
-            st.write(f"**Live Entry:** ${price:.4f}")
-            st.write(f"**Stop Loss:** ${price * 0.98:.4f}")
-            st.write(f"**TP1 (2%):** ${price * 1.02:.4f}")
-            st.write(f"**TP2 (4%):** ${price * 1.04:.4f}")
+            st.write(f"**Entry:** ${price:.4f}")
+            st.write(f"**Stop Loss:** ${price*0.98:.4f}")
+            st.write(f"**Take Profit 1:** ${price*1.02:.4f}")
+            st.write(f"**Take Profit 2:** ${price*1.04:.4f}")
         else:
-            st.write("Waiting for swarm sync...")
+            st.write("Fetching real-time data...")
