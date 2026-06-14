@@ -3,10 +3,17 @@ import pandas as pd
 import requests
 import random
 
+# Configuração da Página
 st.set_page_config(layout="wide", page_title="Institutional Swarm")
 st.title("🎯 INSTITUTIONAL SWARM TERMINAL")
 
-BITFUNDED_ASSETS = ["PIPPIN", "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP", "SNX", "LINK", "FET", "ICP", "WIF", "PEPE", "DOGE", "ADA", "AVAX", "NEAR", "UNI", "LTC", "ATOM", "FIL", "TRX", "ETC", "AAVE", "MKR", "CRV", "SAND", "MANA", "AXS", "XAU", "XAG", "OIL", "EURUSD", "GBPUSD", "USDJPY"]
+# Lista Mestra de Ativos
+BITFUNDED_ASSETS = [
+    "PIPPIN", "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP", 
+    "SNX", "LINK", "FET", "ICP", "WIF", "PEPE", "DOGE", "ADA", "AVAX", "NEAR", 
+    "UNI", "LTC", "ATOM", "FIL", "TRX", "ETC", "AAVE", "MKR", "CRV", "SAND", 
+    "MANA", "AXS", "XAU", "XAG", "OIL", "EURUSD", "GBPUSD", "USDJPY"
+]
 
 @st.cache_data(ttl=30)
 def get_live_price(ticker):
@@ -34,19 +41,24 @@ with tab1:
     direction = st.radio("DIRECTION", ["LONG", "SHORT"])
     
     p = get_live_price(token)
+    st.metric("CURRENT MARKET PRICE", f"${p:,.4f}")
+    
     if st.button("CALCULATE INSTITUTIONAL SETUP"):
-        # Cálculos de Prop Trading
+        # Cálculos de Prop
         target_val = acc_size * (target_pct / 100)
         daily_max_loss = acc_size * (daily_loss / 100)
         
-        # SL/TP baseados em volatilidade
+        # Lógica de Setup (Volatilidade 3%)
         vol = 0.03
-        sl = p * (1 - vol) if direction == "LONG" else p * (1 + vol)
-        tp = p * (1 + (vol * 3)) if direction == "LONG" else p * (1 - (vol * 3))
+        sl_price = p * (1 - vol) if direction == "LONG" else p * (1 + vol)
+        tp_price = p * (1 + (vol * 3)) if direction == "LONG" else p * (1 - (vol * 3))
+        
+        # Cálculo da posição necessária (Daily Loss / Risco do trade)
+        req_pos_size = daily_max_loss / vol
         
         st.table(pd.DataFrame({
-            "Metric": ["Daily Loss Limit ($)", "Profit Target ($)", "Stop Loss", "Take Profit"],
-            "Value": [f"${daily_max_loss:,.2f}", f"${target_val:,.2f}", f"${sl:,.4f}", f"${tp:,.4f}"]
+            "Metric": ["Daily Loss Limit ($)", "Profit Target ($)", "Stop Loss", "Take Profit", "Required Position Size ($)"],
+            "Value": [f"${daily_max_loss:,.2f}", f"${target_val:,.2f}", f"${sl_price:,.4f}", f"${tp_price:,.4f}", f"${req_pos_size:,.2f}"]
         }))
 
 with tab2:
