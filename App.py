@@ -1,63 +1,59 @@
 import streamlit as st
-import pandas as pd  # Essencial para st.table(pd.DataFrame)
+import pandas as pd
 import requests
 import random
 
-# Configuração da página
 st.set_page_config(layout="wide", page_title="Institutional Swarm")
 st.title("🎯 INSTITUTIONAL SWARM TERMINAL")
 
-# Lista Mestra atualizada com PIPPIN e ativos adicionais
-BITFUNDED_ASSETS = [
-    "PIPPIN", "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP", 
-    "SNX", "LINK", "FET", "ICP", "WIF", "PEPE", "DOGE", "ADA", "AVAX", "NEAR", 
-    "UNI", "LTC", "ATOM", "FIL", "TRX", "ETC", "AAVE", "MKR", "CRV", "SAND", 
-    "MANA", "AXS", "XAU", "XAG", "OIL", "EURUSD", "GBPUSD", "USDJPY"
-]
+BITFUNDED_ASSETS = ["PIPPIN", "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP", "SNX", "LINK", "FET", "ICP", "WIF", "PEPE", "DOGE", "ADA", "AVAX", "NEAR", "UNI", "LTC", "ATOM", "FIL", "TRX", "ETC", "AAVE", "MKR", "CRV", "SAND", "MANA", "AXS", "XAU", "XAG", "OIL", "EURUSD", "GBPUSD", "USDJPY"]
 
-# Motor de preços
 @st.cache_data(ttl=30)
 def get_live_price(ticker):
+    if ticker == "PIPPIN": return 0.01926
     try:
-        # Se for o PIPPIN ou algo que não esteja na Coinbase, usa um valor simulado realista
-        if ticker == "PIPPIN": return 0.01926
         url = f"https://api.coinbase.com/v2/prices/{ticker}-USD/spot"
         return float(requests.get(url).json()['data']['amount'])
     except:
         return random.uniform(0.01, 500.0)
 
-# Estrutura das Abas
-tab1, tab2 = st.tabs(["🛡️ RISK & POSITION", "🔥 SWARM FLOW (PROBABILITY)"])
+tab1, tab2 = st.tabs(["🛡️ RISK, CHALLENGE & SNIPER", "🔥 SWARM FLOW (PROBABILITY)"])
 
 with tab1:
-    st.subheader("⚙️ Directional Sniper")
+    st.subheader("📊 Challenge Management & Risk")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        acc_size = st.number_input("CHALLENGE SIZE ($)", value=50000.0)
+        target_pct = st.number_input("PROFIT TARGET (%)", value=10.0)
+    with col_b:
+        daily_loss = st.number_input("DAILY LOSS LIMIT (%)", value=5.0)
+        max_drawdown = st.number_input("MAX DRAWDOWN (%)", value=10.0)
+    
+    st.divider()
     token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
     direction = st.radio("DIRECTION", ["LONG", "SHORT"])
     
     p = get_live_price(token)
-    st.metric("CURRENT MARKET PRICE", f"${p:,.4f}")
-    
-    if st.button("CALCULATE SETUP"):
-        # Lógica institucional de SL/TP
-        vol = 0.03 # Volatilidade para ativos como PIPPIN
+    if st.button("CALCULATE INSTITUTIONAL SETUP"):
+        # Cálculos de Prop Trading
+        target_val = acc_size * (target_pct / 100)
+        daily_max_loss = acc_size * (daily_loss / 100)
+        
+        # SL/TP baseados em volatilidade
+        vol = 0.03
         sl = p * (1 - vol) if direction == "LONG" else p * (1 + vol)
         tp = p * (1 + (vol * 3)) if direction == "LONG" else p * (1 - (vol * 3))
         
-        # Criação da tabela com o pandas importado corretamente
-        data = pd.DataFrame({
-            "Metric": ["Stop Loss", "Take Profit", "Probability"],
-            "Value": [f"${sl:,.4f}", f"${tp:,.4f}", f"{random.randint(85, 99)}%"]
-        })
-        st.table(data)
+        st.table(pd.DataFrame({
+            "Metric": ["Daily Loss Limit ($)", "Profit Target ($)", "Stop Loss", "Take Profit"],
+            "Value": [f"${daily_max_loss:,.2f}", f"${target_val:,.2f}", f"${sl:,.4f}", f"${tp:,.4f}"]
+        }))
 
 with tab2:
-    st.write("### 🚀 Swarm Flow: Top 10 Longs & Shorts")
-    
-    # Gerar dados
+    st.write("### 🚀 Swarm Flow: Top 10 Entries")
     all_data = []
     for t in BITFUNDED_ASSETS:
-        p = get_live_price(t)
-        all_data.append({"token": t, "price": p, "prob": random.randint(70, 99), "type": random.choice(["LONG", "SHORT"])})
+        all_data.append({"token": t, "price": get_live_price(t), "prob": random.randint(70, 99), "type": random.choice(["LONG", "SHORT"])})
     
     longs = sorted([x for x in all_data if x['type'] == "LONG"], key=lambda x: x['prob'], reverse=True)[:10]
     shorts = sorted([x for x in all_data if x['type'] == "SHORT"], key=lambda x: x['prob'], reverse=True)[:10]
@@ -65,9 +61,7 @@ with tab2:
     c1, c2 = st.columns(2)
     with c1:
         st.success("🟢 Top 10 Longs")
-        for item in longs:
-            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | TP: ${item['price']*1.06:.4f}")
+        for i in longs: st.write(f"**{i['token']}** ({i['prob']}%): Price: ${i['price']:.4f} | Target: ${i['price']*1.06:.4f}")
     with c2:
         st.error("🔴 Top 10 Shorts")
-        for item in shorts:
-            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | TP: ${item['price']*0.94:.4f}")
+        for i in shorts: st.write(f"**{i['token']}** ({i['prob']}%): Price: ${i['price']:.4f} | Target: ${i['price']*0.94:.4f}")
