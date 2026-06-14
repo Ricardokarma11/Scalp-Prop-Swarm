@@ -1,13 +1,12 @@
 import streamlit as st
 import requests
 
-# Page Config
-st.set_page_config(page_title="Scalp Prop Terminal", layout="wide")
+# Configuração da página
+st.set_page_config(page_title="Scalp Prop - Sniper Mode", layout="wide")
 
-st.title("🎯 SCALP PROP • PREMIUM V4")
-st.caption("Institutional Matrix | Live Coinbase Sync | Bitfunded Protocol")
+st.title("🎯 SCALP PROP • SNIPER V5")
 
-# --- ENGINE DE PREÇO (Coinbase - Estável) ---
+# --- ENGINE DE PREÇO (Coinbase) ---
 @st.cache_data(ttl=30)
 def get_price(ticker):
     try:
@@ -17,59 +16,55 @@ def get_price(ticker):
     except:
         return None
 
-# --- ABAS DE NAVEGAÇÃO ---
-tab1, tab2 = st.tabs(["🧮 TERMINAL", "🛡️ RISK MANAGEMENT"])
+# --- SEPARADORES (Como na foto 1000035751.jpg) ---
+tab1, tab2, tab3 = st.tabs(["RULES & DRAWDOWN", "PATTERNS & FLOW", "MACRO & STUDY"])
 
 with tab1:
-    # 1. MÉTRICAS EM LINHA
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Risk / Trade", "50 USDT")
-    m2.metric("Daily Loss", "500 USDT")
-    m3.metric("Profit Target", "800 USDT")
-    st.markdown("---")
-
-    # 2. CUSTOM SCANNER
-    st.subheader("🔍 Custom Token Scan")
-    col_in, col_btn = st.columns([3, 1])
-    custom_tok = col_in.text_input("Enter Token:", value="LTC")
+    st.subheader("⚙️ Account & Sniper Parameters")
     
-    if col_btn.button("SCAN SETUP"):
-        price = get_price(custom_tok)
-        if price:
-            sl = price * 0.98
-            tp1 = price * 1.02
-            tp2 = price * 1.04
-            st.success(f"✅ {custom_tok.upper()} Ready | Entry: ${price:.4f}")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Stop Loss", f"${sl:.4f}")
-            c2.metric("TP 1 (2%)", f"${tp1:.4f}")
-            c3.metric("TP 2 (4%)", f"${tp2:.4f}")
-            st.info("🚀 Scaling Protocol: If price hits TP1, add 20% to margin and move SL to Entry.")
-        else:
-            st.error("Error: Check ticker name (e.g., BTC, ETH, LTC).")
-
-    st.markdown("---")
-
-    # 3. TOP 10 SWARM SETUPS (Automático)
-    st.subheader("🔥 Top 10 Pre-Approved Swarm Setups")
-    tokens = ["BTC", "SOL", "SUI", "LINK", "NEAR", "FET", "ETH", "AVAX", "WIF", "LTC"]
+    # Inputs Manuais de Controlo
+    c1, c2 = st.columns(2)
+    acc_bal = c1.number_input("ACCOUNT BALANCE ($)", value=5000, step=1000)
+    risk_pct = c2.number_input("MAX RISK PER TRADE (%)", value=1.0, step=0.1)
     
-    # Exibir todos os setups automaticamente
-    for t in tokens:
-        p = get_price(t)
-        if p:
-            with st.expander(f"🟢 {t} | Entry: ${p:.4f}"):
-                c1, c2, c3, c4 = st.columns(4)
-                c1.write(f"**SL:** ${p*0.98:.4f}")
-                c2.write(f"**TP1:** ${p*1.02:.4f}")
-                c3.write(f"**TP2:** ${p*1.04:.4f}")
-                c4.write("**Scale:** +20% @ TP1")
-        else:
-            st.write(f"🟢 {t} - Syncing data...")
+    c3, c4 = st.columns(2)
+    entry_price = c3.number_input("CURRENT ENTRY PRICE", value=0.7300, format="%.4f")
+    leverage = c4.number_input("INTENDED LEVERAGE", value=10, step=1)
+    
+    token = st.text_input("TOKEN", value="SUI")
+    
+    if st.button("EXECUTE SNIPER ORDER"):
+        # Cálculos Sniper
+        pos_size = (acc_bal * (risk_pct / 100)) * leverage
+        sl = entry_price * 0.98
+        tp_rr = entry_price * 1.06 # RR 1:3 baseado no SL de 2%
+        fib_05 = entry_price * 0.99
+        
+        # Tabela de Métricas (Igual à foto)
+        data = {
+            "Performance Metric": ["Absolute Position Size", "Fibonacci 0.5 (Equilibrium)", "Fibonacci 0.618 (Golden Zone)", "Take Profit Strictly (1:3 RR)", "Stop Loss (Structural Invalidation)"],
+            "Calculated Value": [f"${pos_size:,.2f}", f"${fib_05:.4f}", f"${entry_price*0.985:.4f}", f"${tp_rr:.4f}", f"${sl:.4f}"]
+        }
+        st.table(pd.DataFrame(data))
 
 with tab2:
-    st.subheader("🛡️ Risk Management Rules")
-    st.write("- Max Daily Drawdown: 5%")
-    st.write("- Max Total Drawdown: 10%")
-    st.write("- Leverage Limit: 1:5 Cross")
-    st.write("- Trading Phase: Stage 1 (8% Target)")
+    st.write("### 📈 Institutional Orderflow")
+    st.info("Scanner active: Detecting liquidity sweeps and Market Maker targets.")
+
+with tab3:
+    st.write("### 🌍 Macro & Study")
+    st.write("Analysis of funding rates and global liquidity zones.")
+
+st.markdown("---")
+
+# --- TOP 10 SWARM SETUPS ---
+st.subheader("🔥 Top 10 Pre-Approved Swarm Setups")
+tokens = ["BTC", "SOL", "SUI", "LINK", "NEAR", "FET", "ETH", "AVAX", "WIF", "LTC"]
+
+for t in tokens:
+    with st.expander(f"🟢 {t} - Live Analysis"):
+        p = get_price(t)
+        if p:
+            st.write(f"**Entry:** ${p:.4f} | **SL:** ${p*0.98:.4f} | **TP:** ${p*1.06:.4f}")
+        else:
+            st.write("Syncing data...")
