@@ -2,58 +2,59 @@ import streamlit as st
 import requests
 import pandas as pd
 
-# 1. Configuração do Ambiente
-st.set_page_config(page_title="Scalp Prop - Sniper V6", layout="wide")
+# 1. DEFINIÇÃO DA LISTA MESTRA (Onde tudo se conecta)
+BITFUNDED_ASSETS = [
+    "BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP",
+    "SNX", "ETHFI", "RUNE", "BAKE", "LDO", "CRV", "COMP", "ONDO", "DYDX", "UNI", "MKR", "HYPE",
+    "AI", "JASMY", "GRT", "MINA", "FET", "ICP",
+    "MELANIA", "TRUMP", "WIF", "BONK", "PEPE", "MYRO", "FLOKI", "BOME", "SHIB", "DOGE", "BRETT",
+    "PIXEL", "GALA", "ILV", "IMX", "THETA", "APE", "VIRTUAL", "WLFI",
+    "VET", "PYTH", "JTO", "ROSE", "LINK", "COTI"
+]
 
-# 2. Engine de Preços (CoinGecko p/ Mercado Dinâmico)
-@st.cache_data(ttl=300)
-def get_market_movers():
+st.set_page_config(page_title="Scalp Prop - Institutional", layout="wide")
+st.title("🎯 SCALP PROP • INSTITUTIONAL TERMINAL")
+
+def get_price(ticker):
     try:
-        # Busca os 10 ativos com maior volume para o scanner dinâmico
-        url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=10&page=1&sparkline=false"
-        return requests.get(url, timeout=10).json()
+        url = f"https://api.coinbase.com/v2/prices/{ticker.upper()}-USD/spot"
+        res = requests.get(url, timeout=3).json()
+        return float(res['data']['amount'])
     except:
         return None
 
-# 3. Interface e Abas (Fusão das ref: 1000035734.jpg e 1000035737.jpg)
-st.title("🎯 SCALP PROP • SNIPER ENGINE V6")
-tab1, tab2, tab3 = st.tabs(["RULES & DRAWDOWN", "PATTERNS & FLOW", "MACRO & STUDY"])
+tab1, tab2, tab3 = st.tabs(["🛡️ RISK & SNIPER", "🔥 SWARM FLOW", "🌍 MACRO"])
 
 with tab1:
     st.subheader("⚙️ Account & Sniper Parameters")
-    c1, c2 = st.columns(2)
-    acc_bal = c1.number_input("ACCOUNT BALANCE ($)", value=5000, step=1000)
-    risk = c2.number_input("MAX RISK PER TRADE (%)", value=1.0, step=0.1)
+    # A LISTA AQUI NO SELECTBOX
+    token_input = st.selectbox("SELECT TOKEN (Whitelisted)", BITFUNDED_ASSETS)
     
-    c3, c4 = st.columns(2)
-    entry = c3.number_input("ENTRY PRICE", value=0.7300, format="%.4f")
-    lev = c4.number_input("LEVERAGE", value=10, step=1)
+    acc_bal = st.number_input("ACCOUNT BALANCE ($)", value=5000, step=1000)
+    risk_pct = st.number_input("MAX RISK PER TRADE (%)", value=1.00, step=0.10)
+    entry_price = st.number_input("ENTRY PRICE", value=0.0000, format="%.4f")
+    leverage = st.number_input("LEVERAGE (MAX 5X)", min_value=1, max_value=5, value=5, step=1)
     
     if st.button("EXECUTE SNIPER ORDER"):
-        pos_size = (acc_bal * (risk / 100)) * lev
-        sl = entry * 0.98
-        tp = entry * 1.06
-        data = {
-            "Metric": ["Absolute Position Size", "Stop Loss (Invalidation)", "Take Profit (Strict 1:3 RR)"],
+        pos_size = (acc_bal * (risk_pct / 100)) * leverage
+        sl = entry_price * 0.98
+        tp = entry_price * 1.06
+        st.table(pd.DataFrame({
+            "Metric": ["Position Size (at 5x)", "Stop Loss (2%)", "Take Profit (6%)"],
             "Value": [f"${pos_size:,.2f}", f"${sl:.4f}", f"${tp:.4f}"]
-        }
-        st.table(pd.DataFrame(data))
+        }))
 
 with tab2:
-    st.subheader("📈 Institutional Orderflow (Swarm Data)")
-    movers = get_market_movers()
-    if movers:
-        # Tabela consolidada como na ref: 1000035731.jpg
-        for coin in movers:
-            symbol = coin['symbol'].upper()
-            price = coin['current_price']
-            with st.expander(f"🟢 {symbol} - Live Agent Analysis"):
-                st.write(f"**Live Price:** ${price:.4f}")
-                st.write(f"**SL:** ${price*0.98:.4f} | **TP:** ${price*1.06:.4f}")
-                st.info("Scaling Protocol: Add 20% position at TP1.")
-    else:
-        st.warning("Scanner synchronization in progress...")
+    st.write("### 📈 Institutional Orderflow (Swarm Data)")
+    # A LISTA AQUI NO SCANNER (Swarm)
+    for t in BITFUNDED_ASSETS:
+        p = get_price(t)
+        if p:
+            with st.expander(f"🟢 {t} - Live Flow"):
+                st.write(f"**Price:** ${p:.4f} | **SL:** ${p*0.98:.4f} | **TP:** ${p*1.06:.4f}")
+        else:
+            continue
 
 with tab3:
-    st.subheader("🌍 Macro & Study")
-    st.write("Dados de mercado em tempo real carregados via API Global.")
+    st.write("### 🌍 Macro & Study")
+    st.write(f"Monitorização ativa de {len(BITFUNDED_ASSETS)} ativos da Bitfunded.")
