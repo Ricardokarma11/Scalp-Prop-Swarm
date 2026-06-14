@@ -3,10 +3,11 @@ import pandas as pd
 import requests
 import hashlib
 
-# Premium V3.4 Scalp Prop - Optimized Layout
-st.set_page_config(page_title="Scalp Prop v3.4 - Terminal", layout="wide")
+# Premium V3.5 Scalp Prop - Optimized Compact Terminal
+st.set_page_config(page_title="Scalp Prop v3.5 - Terminal", layout="wide")
 
-st.title("🎯 SCALP PROP • PREMIUM V3")
+# App Identity
+st.title("SCALP PROP • PREMIUM V3")
 st.caption("Institutional Matrix | Live Swarm Sync | Max Leverage: 5X Cross")
 
 st.markdown("---")
@@ -15,10 +16,9 @@ st.markdown("---")
 if "selected_token" not in st.session_state: st.session_state.selected_token = "BTC"
 if "selected_direction" not in st.session_state: st.session_state.selected_direction = "LONG"
 
-# Dynamic Swarm Generator
+# --- SYSTEM ENGINE: DYNAMIC SWARM ---
 @st.cache_data(ttl=60)
 def get_live_swarm_setups():
-    # Simulated Live Market Engine
     default_tickers = ["BTC", "ETH", "SOL", "SUI", "LINK", "NEAR", "RUNE", "FET", "AVAX", "WIF"]
     swarm_list = []
     for ticker in default_tickers:
@@ -27,12 +27,13 @@ def get_live_swarm_setups():
 
 live_setups = get_live_swarm_setups()
 
+# Tabs
 tab_calc, tab_rules, tab_patterns = st.tabs(["🧮 CALCULATOR", "📜 RULES & DRAWDOWN", "📈 PATTERNS & FLOW"])
 
 with tab_calc:
     st.subheader("⚙️ Account & Risk Setup")
     col_a, col_p, col_r = st.columns(3)
-    with col_a: acc_bal = st.selectbox("Account (USDT)", [2500, 5000, 10000, 25000, 50000], index=2)
+    with col_a: acc_bal = st.selectbox("Account (USDT)", [2500, 5000, 10000, 25000, 50000, 100000], index=2)
     with col_p: phase = st.radio("Target", ["Stage 1 (8%)", "Stage 2 (4%)"], horizontal=True)
     with col_r: risk = st.slider("Risk Per Trade (%)", 0.1, 5.0, 0.5, step=0.1)
 
@@ -41,19 +42,23 @@ with tab_calc:
     daily_drawdown = acc_bal * 0.05
     profit_target = acc_bal * (0.08 if "Stage 1" in phase else 0.04)
 
-    # --- COMPACT METRIC ROW (O TEU PEDIDO) ---
+    # --- COMPACT METRIC ROW (OPTIMIZED) ---
     st.markdown("---")
     m1, m2, m3 = st.columns(3)
-    m1.metric("Risk / Trade", f"{cash_risk:.0f} USDT")
-    m2.metric("Daily Loss", f"{daily_drawdown:.0f} USDT")
-    m3.metric("Profit Target", f"{profit_target:.0f} USDT")
+    m1.write("**Risk / Trade**")
+    m1.write(f"### {cash_risk:.0f} USDT")
+    m2.write("**Daily Loss**")
+    m2.write(f"### {daily_drawdown:.0f} USDT")
+    m3.write("**Profit Target**")
+    m3.write(f"### {profit_target:.0f} USDT")
     st.markdown("---")
 
     st.subheader("🔥 Top 10 Swarm Setups")
     cols = st.columns(5)
     for i, t in enumerate(live_setups):
         target = cols[i%5]
-        if target.button(f"{'🟢' if t['Direction']=='LONG' else '🔴'} {t['Ticker']}", key=f"btn_{i}", use_container_width=True):
+        label = f"{'🟢' if t['Direction']=='LONG' else '🔴'} {t['Ticker']}"
+        if target.button(label, key=f"btn_{i}", use_container_width=True):
             st.session_state.selected_token = t['Ticker']
             st.session_state.selected_direction = t['Direction']
 
@@ -64,15 +69,18 @@ with tab_calc:
     direc = c2.selectbox("Direction", ["LONG", "SHORT"], index=0 if st.session_state.selected_direction=="LONG" else 1)
     sl = c3.slider("SL (%)", 0.5, 10.0, 2.0)
 
-    # Simplified Calc Display
+    # Calculations Display
     pos_size = cash_risk / (sl / 100.0)
-    st.table(pd.DataFrame({
-        "Metric": ["Position Size", "Margin (5X)", "Take Profit"],
+    data = pd.DataFrame({
+        "Metric": ["Pos. Size", "Margin (5X)", "Take Profit"],
         "Value": [f"${pos_size:,.2f}", f"${(pos_size/5):,.2f}", f"{((sl*3)*100):.1f}% ROI"]
-    }))
+    })
+    st.table(data)
 
 with tab_rules:
-    st.write("Bitfunded Rules: 5% Max Daily Loss, 10% Overall Loss, 1:5 Leverage.")
+    st.subheader("🛡️ Bitfunded Framework")
+    st.write("Rules: 5% Max Daily Loss, 10% Overall Loss, 1:5 Leverage.")
 
 with tab_patterns:
-    st.write("Live institutional orderflow active.")
+    st.subheader("📈 Institutional Flow")
+    st.write("Live institutional orderflow scanning enabled.")
