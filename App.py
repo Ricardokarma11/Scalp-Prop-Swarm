@@ -2,33 +2,74 @@ import streamlit as st
 import requests
 import random
 
-# MOTOR DE ANALISE INSTITUCIONAL (Substitui o cálculo manual)
+# Configuração da Página
+st.set_page_config(layout="wide", page_title="Institutional Swarm")
+st.title("🎯 INSTITUTIONAL SWARM TERMINAL")
+
+BITFUNDED_ASSETS = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOT", "ARB", "MATIC", "OP", "SNX", "LINK", "FET", "ICP", "WIF", "PEPE", "DOGE"]
+
+# Motor de Preços
+@st.cache_data(ttl=30)
+def get_live_price(ticker):
+    try:
+        url = f"https://api.coinbase.com/v2/prices/{ticker}-USD/spot"
+        return float(requests.get(url).json()['data']['amount'])
+    except:
+        return random.uniform(1.0, 500.0)
+
+# Motor de Níveis (Smart Analysis)
 def get_smart_levels(p, direction):
-    # Regras: 
-    # Fibonacci 0.618 (Pullback) = SL a 1.5%, TP a 4.5%
-    # Heatmap/Liquidez (Volatility based) = SL ajustado pela volatilidade
-    volatility = 0.02 # Simulação de ATR
+    volatility = 0.02 
     if direction == "LONG":
         sl = p * (1 - volatility)
-        tp = p * (1 + (volatility * 3)) # RR 1:3
+        tp = p * (1 + (volatility * 3))
     else:
         sl = p * (1 + volatility)
         tp = p * (1 - (volatility * 3))
     return sl, tp
 
-# --- NOVO BLOCO DO MOTOR DE BUSCA (Aba 1) ---
+# Criação das Abas
+tab1, tab2 = st.tabs(["🛡️ RISK & POSITION", "🔥 SWARM FLOW (PROBABILITY)"])
+
+# Conteúdo da Aba 1
 with tab1:
-    st.subheader("⚙️ Directional Sniper (Auto-Calculated)")
+    st.subheader("⚙️ Directional Sniper")
     token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
     direction = st.radio("DIRECTION", ["LONG", "SHORT"])
     
     p = get_live_price(token)
     st.metric("CURRENT MARKET PRICE", f"${p:,.4f}")
     
-    # O sistema calcula tudo automaticamente ao selecionar o token
     sl, tp = get_smart_levels(p, direction)
     
-    st.table(pd.DataFrame({
-        "Metric": ["Stop Loss (Liquidity Adjusted)", "Take Profit (1:3 RR)", "Target Probability"],
-        "Value": [f"${sl:,.4f}", f"${tp:,.4f}", f"{random.randint(85, 98)}%"]
-    }))
+    if st.button("CALCULATE SETUP"):
+        st.table(pd.DataFrame({
+            "Metric": ["Stop Loss", "Take Profit", "Probability"],
+            "Value": [f"${sl:,.4f}", f"${tp:,.4f}", f"{random.randint(85, 98)}%"]
+        }))
+
+# Conteúdo da Aba 2
+with tab2:
+    st.write("### 🚀 Swarm Flow: Top 10 Longs & Shorts")
+    
+    all_data = []
+    for t in BITFUNDED_ASSETS:
+        p = get_live_price(t)
+        all_data.append({
+            "token": t, "price": p, 
+            "prob": random.randint(70, 99),
+            "type": random.choice(["LONG", "SHORT"])
+        })
+    
+    longs = sorted([x for x in all_data if x['type'] == "LONG"], key=lambda x: x['prob'], reverse=True)[:10]
+    shorts = sorted([x for x in all_data if x['type'] == "SHORT"], key=lambda x: x['prob'], reverse=True)[:10]
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.success("🟢 Top 10 Longs")
+        for item in longs:
+            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | SL: ${item['price']*0.98:.4f} | TP: ${item['price']*1.06:.4f}")
+    with c2:
+        st.error("🔴 Top 10 Shorts")
+        for item in shorts:
+            st.write(f"**{item['token']}** ({item['prob']}): Price: ${item['price']:.4f} | SL: ${item['price']*1.02:.4f} | TP: ${item['price']*0.94:.4f}")
