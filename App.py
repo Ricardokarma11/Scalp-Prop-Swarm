@@ -16,35 +16,52 @@ def get_live_price(ticker):
     except:
         return random.uniform(1.0, 500.0)
 
-# Motor de Probabilidade Realista
-def calculate_setup_probability(ticker):
-    # Simula a confluência: tokens com mais volume têm probabilidade base mais alta
-    base_prob = 85 if ticker in ["BTC", "ETH", "SOL"] else 70
-    volatility_boost = random.randint(0, 14) 
-    return base_prob + volatility_boost
-
 tab1, tab2 = st.tabs(["🛡️ RISK & POSITION", "🔥 SWARM FLOW (PROBABILITY)"])
 
 with tab1:
     st.subheader("⚙️ Risk Management")
-    # ... (Teu código de cálculo de posição mantém-se aqui) ...
-    st.info("Insere o teu tamanho de conta para calcular a posição.")
+    token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        account_size = st.number_input("ACCOUNT SIZE ($)", value=10000.0)
+    with col2:
+        risk_pct = st.number_input("RISK PER TRADE (%)", value=1.0)
+    with col3:
+        sl_dist = st.number_input("STOP LOSS DISTANCE (%)", value=2.0)
+        
+    p = get_live_price(token)
+    if st.button("CALCULATE POSITION"):
+        risk_amount = account_size * (risk_pct / 100)
+        pos_size = risk_amount / (sl_dist / 100)
+        st.table(pd.DataFrame({
+            "Metric": ["Entry Price", "Risk Amount", "Position Size"],
+            "Value": [f"${p:,.4f}", f"${risk_amount:,.2f}", f"${pos_size:,.2f}"]
+        }))
 
 with tab2:
-    st.write("### 🚀 Top 10 Swarm Entries (Ordered by Success Probability)")
+    st.write("### 🚀 Swarm Flow: Top 10 Longs & Shorts")
     
-    swarm_data = []
+    # Gerar dados simulados para Longs e Shorts
+    all_data = []
     for t in BITFUNDED_ASSETS:
         p = get_live_price(t)
-        prob = calculate_setup_probability(t)
-        swarm_data.append({"token": t, "price": p, "prob": prob})
+        all_data.append({
+            "token": t, "price": p, 
+            "prob": random.randint(70, 99),
+            "type": random.choice(["LONG", "SHORT"])
+        })
     
-    # ORDENAÇÃO CRÍTICA: Do maior para o menor
-    top_entries = sorted(swarm_data, key=lambda x: x['prob'], reverse=True)
+    # Separar e ordenar
+    longs = sorted([x for x in all_data if x['type'] == "LONG"], key=lambda x: x['prob'], reverse=True)[:10]
+    shorts = sorted([x for x in all_data if x['type'] == "SHORT"], key=lambda x: x['prob'], reverse=True)[:10]
     
-    for entry in top_entries:
-        p = entry['price']
-        # Setup: TP 6% / SL 3%
-        tp = p * 1.06
-        sl = p * 0.97
-        st.success(f"**{entry['token']}** ({entry['prob']}% Prob): SL: ${sl:.4f} | TP: ${tp:.4f}")
+    col_l, col_s = st.columns(2)
+    with col_l:
+        st.success("🟢 Top 10 Longs")
+        for item in longs:
+            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | SL: ${item['price']*0.98:.4f} | TP: ${item['price']*1.06:.4f}")
+            
+    with col_s:
+        st.error("🔴 Top 10 Shorts")
+        for item in shorts:
+            st.write(f"**{item['token']}** ({item['prob']}%): Price: ${item['price']:.4f} | SL: ${item['price']*1.02:.4f} | TP: ${item['price']*0.94:.4f}")
