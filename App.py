@@ -27,34 +27,43 @@ def get_price(ticker):
 tab1, tab2, tab3 = st.tabs(["🛡️ RISK & SNIPER", "🔥 SWARM FLOW (LONG/SHORT)", "🌍 MACRO"])
 
 with tab1:
-    # ... (Mantém o teu código de cálculo manual aqui) ...
-    pass
+    st.subheader("⚙️ Account & Sniper Parameters")
+    # Forçar a renderização dos inputs
+    selected_token = st.selectbox("SELECT TOKEN", BITFUNDED_ASSETS)
+    current_price = get_price(selected_token)
+    
+    acc_bal = st.number_input("ACCOUNT BALANCE ($)", value=5000, step=1000)
+    risk_pct = st.number_input("MAX RISK (%)", value=1.00, step=0.10)
+    entry_price = st.number_input("ENTRY PRICE", value=current_price or 0.0, format="%.4f")
+    leverage = st.number_input("LEVERAGE (MAX 5X)", min_value=1, max_value=5, value=5, step=1)
+    
+    if st.button("EXECUTE SNIPER ORDER"):
+        pos_size = (acc_bal * (risk_pct / 100)) * leverage
+        st.table(pd.DataFrame({
+            "Metric": ["Position Size (at 5x)", "Stop Loss (2%)", "Take Profit (6%)"],
+            "Value": [f"${pos_size:,.2f}", f"${entry_price*0.98:.4f}", f"${entry_price*1.06:.4f}"]
+        }))
 
 with tab2:
-    st.write("### 🚀 Top 10 Longs & Top 10 Shorts (Por Probabilidade)")
-    
+    st.write("### 🚀 Top 10 Longs & Top 10 Shorts")
     swarm_data = []
     for t in BITFUNDED_ASSETS:
         p = get_price(t)
         if p:
-            # Gerar dados para Long e Short
             prob_long = random.randint(50, 99)
             prob_short = random.randint(50, 99)
-            
             swarm_data.append({"token": t, "price": p, "dir": "LONG", "prob": prob_long})
             swarm_data.append({"token": t, "price": p, "dir": "SHORT", "prob": prob_short})
     
-    # Separar e ordenar
     longs = sorted([x for x in swarm_data if x['dir'] == "LONG"], key=lambda x: x['prob'], reverse=True)[:10]
     shorts = sorted([x for x in swarm_data if x['dir'] == "SHORT"], key=lambda x: x['prob'], reverse=True)[:10]
     
-    # Exibir
     c1, c2 = st.columns(2)
     with c1:
         st.write("#### 🟢 Top 10 Longs")
-        for item in longs:
-            st.success(f"{item['token']} ({item['prob']}%): Price ${item['price']:.4f} | TP ${item['price']*1.06:.4f}")
+        for i in longs:
+            st.success(f"{i['token']} ({i['prob']}%): Price ${i['price']:.4f} | TP ${i['price']*1.06:.4f} | **SL ${i['price']*0.98:.4f}**")
     with c2:
         st.write("#### 🔴 Top 10 Shorts")
-        for item in shorts:
-            st.error(f"{item['token']} ({item['prob']}%): Price ${item['price']:.4f} | TP ${item['price']*0.94:.4f}")
+        for i in shorts:
+            st.error(f"{i['token']} ({i['prob']}%): Price ${i['price']:.4f} | TP ${i['price']*0.94:.4f} | **SL ${i['price']*1.02:.4f}**")
